@@ -1,7 +1,7 @@
 """
 Pydantic models for request/response validation.
 """
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, field_validator
 
 
@@ -10,12 +10,13 @@ class AnalyzeRequest(BaseModel):
     barcode: Optional[str] = None
     ingredients_text: Optional[str] = None
 
-    @field_validator('barcode', 'ingredients_text')
+    @field_validator('barcode', 'ingredients_text', mode='after')
     @classmethod
-    def at_least_one_field(cls, v, info):
+    def at_least_one_provided(cls, v, info):
         """Ensure at least one of barcode or ingredients_text is provided."""
+        # This runs after each field, so we check at model level
         return v
-
+    
     def model_post_init(self, __context):
         """Validate that at least one field is provided."""
         if not self.barcode and not self.ingredients_text:
@@ -29,7 +30,7 @@ class IngredientDetail(BaseModel):
     name: Optional[str] = None
     status: str = "unknown"  # permitted | restricted | banned | unknown
     max_ppm: Optional[int] = None
-    allowed_in: Optional[list[str]] = None
+    allowed_in: Optional[List[str]] = None
     notes: Optional[str] = None
 
 
@@ -38,5 +39,5 @@ class AnalyzeResponse(BaseModel):
     product_name: Optional[str] = None
     source: str  # openfoodfacts | manual
     ingredients_text: str
-    ingredients: list[IngredientDetail]
+    ingredients: List[IngredientDetail]
     product_compliance: str  # compliant | partially_compliant | non_compliant | unknown
