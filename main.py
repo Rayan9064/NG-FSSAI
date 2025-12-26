@@ -1,98 +1,123 @@
 """
-Context for GitHub Copilot:
-
-I am building a backend service for NutriGrade, a nutrition intelligence platform.
-Stack: Python 3.11 + FastAPI. Goal: start with India-focused FSSAI compliance using Open Food Facts data.
-
-High-level flow (v1 MVP):
-- Input: either a product barcode OR a raw ingredients text string.
-- If barcode is provided:
-  - Call Open Food Facts API (v2) to fetch product details.
-  - Extract the ingredients text field from the OFF JSON.
-- If ingredients_text is provided directly, use it as-is.
-
-- Extract potential additives from ingredients_text:
-  - Detect "INS" numbers (e.g., "INS 211", "INS-211").
-  - Optionally detect E-numbers (e.g., "E211") and simple additive names.
-  - For now this can be done with regex + simple string processing (no ML yet).
-
-- FSSAI knowledge base:
-  - I will have a local JSON file: data/fssai_additives.json
-  - Example schema for each additive:
-    {
-      "ins_number": "211",
-      "name": "Sodium benzoate",
-      "status": "permitted",         # allowed | restricted | banned | unknown
-      "max_ppm": 500,
-      "allowed_in": ["non-alcoholic beverages", "jams"],
-      "notes": "Not allowed in meat/fish products"
-    }
-  - I want helper functions to:
-    - load this JSON at startup
-    - lookup by INS code or by name
-
-- Core logic:
-  - For each extracted additive:
-    - Normalize (e.g., "INS 211" -> "211").
-    - Lookup in FSSAI KB.
-    - Build a structured result:
-      {
-        "raw": "INS 211 (Sodium benzoate)",
-        "normalized_ins": "211",
-        "name": "Sodium benzoate",
-        "status": "permitted",
-        "max_ppm": 500,
-        "allowed_in": [...],
-        "notes": "..."
-      }
-  - Aggregate product-level compliance:
-    - If any banned additive -> product_compliance = "non_compliant"
-    - Else if any restricted additive -> product_compliance = "partially_compliant"
-    - Else if all permitted/unknown -> "compliant" or "unknown" accordingly.
-
-API design:
-- FastAPI app with:
-  - GET /health -> { "status": "ok" }
-  - POST /analyze
-    Request body (Pydantic):
-      {
-        "barcode": Optional[str],
-        "ingredients_text": Optional[str]
-      }
-    - At least one of barcode or ingredients_text must be provided.
-    Response body:
-      {
-        "product_name": Optional[str],
-        "source": "openfoodfacts" | "manual",
-        "ingredients_text": str,
-        "ingredients": [
-          {
-            "raw": str,
-            "normalized_ins": Optional[str],
-            "name": Optional[str],
-            "status": "permitted" | "restricted" | "banned" | "unknown",
-            "max_ppm": Optional[int],
-            "allowed_in": Optional[list[str]],
-            "notes": Optional[str]
-          }
-        ],
-        "product_compliance": "compliant" | "partially_compliant" | "non_compliant" | "unknown"
-      }
-
-What I want Copilot to help with now:
-1. Create a minimal FastAPI app structure with:
-   - main.py (FastAPI app, routes)
-   - models.py (Pydantic request/response models)
-   - fssai_kb.py (load and query FSSAI JSON)
-   - off_client.py (call Open Food Facts API by barcode)
-   - analyzer.py (core logic: ingredients text -> extracted additives -> FSSAI lookups -> result)
-
-2. Implement:
-   - The Pydantic models for request and response.
-   - A simple OFF client using requests or httpx.
-   - Regex-based INS extraction from ingredients_text.
-   - FSSAI KB loader and lookup functions.
-   - The /analyze endpoint wiring everything together.
-
-Please generate idiomatic, clean, well-structured FastAPI code with type hints.
+NutriGrade - Nutrition Intelligence Platform
+FastAPI backend for FSSAI compliance checking using Open Food Facts data.
 """
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
+from models import AnalyzeRequest, AnalyzeResponse, IngredientDetail
+from off_client import OpenFoodFactsClient
+from fssai_kb import FSSAIKnowledgeBase
+from analyzer import IngredientsAnalyzer
+
+# Global instances
+fssai_kb = FSSAIKnowledgeBase()
+off_client = None
+analyzer = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown."""
+    # Startup
+    global off_client, analyzer
+    
+    # Load FSSAI knowledge base
+    fssai_kb.load()
+    
+    # Initialize clients
+    off_client = OpenFoodFactsClient()
+    analyzer = IngredientsAnalyzer(fssai_kb)
+    
+    yield
+    
+    # Shutdown
+    await off_client.close()
+
+
+app = FastAPI(
+    title="NutriGrade API",
+    description="FSSAI compliance checking for food products",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "ok"}
+
+
+@app.post("/analyze", response_model=AnalyzeResponse)
+async def analyze_product(request: AnalyzeRequest):
+    """
+    Analyze a food product for FSSAI compliance.
+    
+    Accepts either a barcode (to fetch from Open Food Facts) or 
+    direct ingredients text.
+    """
+    product_name = None
+    ingredients_text = None
+    source = "manual"
+    
+    # If barcode is provided, fetch from Open Food Facts
+    if request.barcode:
+        product_data = await off_client.get_product_by_barcode(request.barcode)
+        
+        if not product_data:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Product with barcode {request.barcode} not found in Open Food Facts"
+            )
+        
+        # Extract ingredients text
+        ingredients_text = off_client.extract_ingredients_text(product_data)
+        
+        if not ingredients_text:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No ingredients text found for product {request.barcode}"
+            )
+        
+        # Extract product name
+        product_name = off_client.get_product_name(product_data)
+        source = "openfoodfacts"
+    
+    # If ingredients_text is provided directly, use it
+    if request.ingredients_text:
+        ingredients_text = request.ingredients_text
+        source = "manual"
+    
+    # Validate we have ingredients text
+    if not ingredients_text:
+        raise HTTPException(
+            status_code=400,
+            detail="No ingredients text available for analysis"
+        )
+    
+    # Analyze ingredients
+    ingredients, product_compliance = analyzer.analyze_ingredients_text(ingredients_text)
+    
+    return AnalyzeResponse(
+        product_name=product_name,
+        source=source,
+        ingredients_text=ingredients_text,
+        ingredients=ingredients,
+        product_compliance=product_compliance
+    )
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

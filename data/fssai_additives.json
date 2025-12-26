@@ -1,0 +1,122 @@
+[
+  {
+    "ins_number": "211",
+    "name": "Sodium benzoate",
+    "status": "permitted",
+    "max_ppm": 500,
+    "allowed_in": ["non-alcoholic beverages", "jams", "jellies", "fruit preparations"],
+    "notes": "Not allowed in meat/fish products"
+  },
+  {
+    "ins_number": "220",
+    "name": "Sulphur dioxide",
+    "status": "restricted",
+    "max_ppm": 200,
+    "allowed_in": ["dried fruits", "wine", "beer"],
+    "notes": "May cause allergic reactions in sensitive individuals"
+  },
+  {
+    "ins_number": "621",
+    "name": "Monosodium glutamate",
+    "status": "permitted",
+    "max_ppm": null,
+    "allowed_in": ["savory foods", "snacks", "seasonings"],
+    "notes": "Widely used flavor enhancer"
+  },
+  {
+    "ins_number": "102",
+    "name": "Tartrazine",
+    "status": "permitted",
+    "max_ppm": 100,
+    "allowed_in": ["confectionery", "beverages", "desserts"],
+    "notes": "Yellow food coloring, may cause hyperactivity in children"
+  },
+  {
+    "ins_number": "110",
+    "name": "Sunset Yellow FCF",
+    "status": "permitted",
+    "max_ppm": 100,
+    "allowed_in": ["confectionery", "beverages", "ice cream"],
+    "notes": "Orange food coloring"
+  },
+  {
+    "ins_number": "200",
+    "name": "Sorbic acid",
+    "status": "permitted",
+    "max_ppm": 1000,
+    "allowed_in": ["cheese", "bakery products", "beverages"],
+    "notes": "Effective preservative against molds and yeasts"
+  },
+  {
+    "ins_number": "202",
+    "name": "Potassium sorbate",
+    "status": "permitted",
+    "max_ppm": 1000,
+    "allowed_in": ["cheese", "bakery products", "beverages", "wines"],
+    "notes": "Salt of sorbic acid, widely used preservative"
+  },
+  {
+    "ins_number": "210",
+    "name": "Benzoic acid",
+    "status": "permitted",
+    "max_ppm": 500,
+    "allowed_in": ["non-alcoholic beverages", "jams", "pickles"],
+    "notes": "Naturally occurs in some fruits"
+  },
+  {
+    "ins_number": "300",
+    "name": "Ascorbic acid",
+    "status": "permitted",
+    "max_ppm": null,
+    "allowed_in": ["various food products"],
+    "notes": "Vitamin C, antioxidant"
+  },
+  {
+    "ins_number": "330",
+    "name": "Citric acid",
+    "status": "permitted",
+    "max_ppm": null,
+    "allowed_in": ["various food products"],
+    "notes": "Natural acid found in citrus fruits"
+  },
+  {
+    "ins_number": "407",
+    "name": "Carrageenan",
+    "status": "permitted",
+    "max_ppm": null,
+    "allowed_in": ["dairy products", "ice cream", "processed meats"],
+    "notes": "Derived from seaweed, used as thickener"
+  },
+  {
+    "ins_number": "412",
+    "name": "Guar gum",
+    "status": "permitted",
+    "max_ppm": null,
+    "allowed_in": ["bakery products", "ice cream", "sauces"],
+    "notes": "Natural thickening agent"
+  },
+  {
+    "ins_number": "415",
+    "name": "Xanthan gum",
+    "status": "permitted",
+    "max_ppm": null,
+    "allowed_in": ["various food products"],
+    "notes": "Popular stabilizer and thickener"
+  },
+  {
+    "ins_number": "950",
+    "name": "Acesulfame potassium",
+    "status": "permitted",
+    "max_ppm": 500,
+    "allowed_in": ["beverages", "desserts", "tabletop sweeteners"],
+    "notes": "Artificial sweetener"
+  },
+  {
+    "ins_number": "951",
+    "name": "Aspartame",
+    "status": "permitted",
+    "max_ppm": 5000,
+    "allowed_in": ["beverages", "desserts", "tabletop sweeteners"],
+    "notes": "Not suitable for people with phenylketonuria"
+  }
+]
